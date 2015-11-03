@@ -1,0 +1,182 @@
+#!/bin/bash
+
+##declarations
+#declare all_args="${@}"
+declare whoami="$(whoami)"
+declare myusername=${whoami}
+declare -i  createdb=0
+declare grep_project_name=""
+#declare script_name=${0##*/}
+declare password_env_var_string="PGRAILS_DATABASE_PASSWORD"
+
+## Functions
+
+user_choice () {
+    read -p  "databases will not be created. Do you wish to continue? [Y/n]?" userchoice
+      if [[ $userchoice == "Y" ||  $userchoice == "Yes" ]]; then
+        echo "OK"
+      else
+        echo "Exiting at user request"
+        exit 1
+      fi
+  }
+
+credentials_check () {
+  if [[  ${myusername} != ${whoami} ]]; then
+    echo "username and login name do not correspond"
+    user_choice
+    createdb=0
+  else
+   echo "Username OK"
+  fi
+}
+
+env_variable_check () {
+  if [[  $(env  | grep -c ^${1}=) -ne 0 ]]; then
+    echo "Env variable OK"
+  else
+    echo "password env variable not properly set"
+    user_choice
+    createdb=0
+  fi
+}
+
+verify_postgres_login () {
+    declare md5_encrypted_psql_credentials=$(echo -n ${psql_password}${myusername} |  md5sum)
+    declare psql_login_status="$(psql  -d postgres -c 'select * from pg_shadow' |cut -d \| -f 7 | grep -c  ${md5_encrypted_psql_credentials})"
+  if [[ ${psql_login_status} -eq 1 ]]; then
+    echo "login psql succesful"
+  else
+    echo "cannot login to psql. Check username and password"
+    user_choice
+    createdb=0
+  fi
+}
+
+usage () {
+cat <<END
+
+ railspg [-h] [-c] [-u] [-e] new <project_name>
+
+This program generates a basic rails project where all generated databases (development, test and production) are
+postgres. The outcome is otherwise equivalent to the default 'rails new <project_name>'
+
+      -h: get help
+      -c: Create databases. If (1) postgres username and unix/Ubuntu username are identical
+          (2) An env variable is set to posgres password, databases may be created.
+          By default, the env variable name is PGRAILS_DATABASE_PASSWORD. 
+          If the databases are NOT created, run 'rake db:create:all' after program execution.
+      -u: change username. The default username is the current unix/Ubuntu username
+      -e: set postgres password environment variable name. Useful if the env variable name is other than default
+
+    REQUIREMENTS
+       (1) Set up a postgres user with the same name as the current unix/Ununtu login name
+               sudo -u postgres createuser -s <unix_ubuntu_username>
+               sudo -u postgres psql
+               \\password <unix_ubuntu_username>
+       (2) Set env variable. You may need to execute the following prior to running the program. 
+              PGRAILS_DATABASE_PASSWORD='my_postgres_password'
+              export PGRAILS_DATABASE_PASSWORD'
+          Or, include the following line in your .bashrc file
+              export PGRAILS_DATABASE_PASSWORD='my_postgres_password'
+
+    EXAMPLE USAGE
+      railspg new <project_name>
+      ralspg -c new <project_name> 
+      railspg -cu <username> -e PG_PASSWORD new <project name>
+END
+}
+
+## Set options
+while getopts ":chu:e:" opt; do
+ case $opt in
+    c)
+     createdb=1
+      ;;
+    h)
+     usage
+     exit 1
+      ;;
+    u)
+     myusername=${OPTARG}
+      ;;
+    e)
+      password_env_var_string=${OPTARG}
+      ;;
+  esac
+done
+
+shift $(( ${OPTIND} - 1 ))
+
+##  Declarations
+declare myrails="${2}"
+if [[ ${myrails} ]];then
+  declare grep_project_name="$(ls | grep -c ^${myrails}$)"
+fi
+declare compulsoryargs="${@}"
+declare devexists="$(psql -lqt | cut -d \| -f 1 | grep -w ${myrails}_development | wc -l)"
+declare prodexists="$(psql -lqt | cut -d \| -f 1 | grep -w ${myrails}_production | wc -l)"
+declare testexists="$(psql -lqt | cut -d \| -f 1 | grep -w ${myrails}_test | wc -l)"
+declare psql_password=$(env | grep $password_env_var_string  | cut -d \= -f 2)
+
+## Checks and tests
+# Does the app name already exist?
+if [[ ${grep_project_name} -ne 0 ]]; then
+  echo "The project name ${2} already exists"
+  exit 1
+fi
+# is the first compulsory argument 'new'?
+if [[ $1 != new ]]; then
+  echo "The first compulsory argument must be the keyword 'new'"
+  exit 1
+fi
+# are there exactly two compulsory arguments? 
+if [[ $# != 2 ]]; then
+  echo " Argument error. The program requires exactly two compulsory arguments, ${#} detected"
+  exit 1
+fi
+# Should the databases be created?
+if [[  ${createdb} == 1  ]]; then
+   credentials_check
+   env_variable_check ${password_env_var_string}
+   verify_postgres_login
+fi
+# Do databases already exist?
+if [[ ${devexists} == 1 || ${prodexists} == 1 || ${testexists} == 1 ]]; then
+  if [[ ${devexists} == 1 ]]; then
+    echo "Database ${myrails}_development already exists" 
+  fi
+  if [[ ${testexists} == 1 ]]; then
+    echo "Database ${myrails}_test already exists" 
+  fi
+  if [[ ${prodexists} == 1 ]]; then
+    echo "Database ${myrails}_production already exists" 
+  fi
+echo "type 'makerails_pg help' for usage"
+exit 1
+fi
+
+## Program code begins here
+set -x
+rails new ${myrails} -d postgresql && cd ${myrails}  && bundle install
+cd config && sed -i '/pool:/a \ \ timeout:\ 5000' database.yml
+
+sed -i "/${myrails}_development/a \ \ username: ${myusername}\n\ \ \
+password: <%= ENV[\'${password_env_var_string}\'] %>\n\ \ \
+host: localhost\n\ \ port: 5432" database.yml
+
+sed -i "/${myrails}_test/a \ \ username: ${myusername}\n\ \ \
+password: <%= ENV[\'${password_env_var_string}\'] %>\n\ \ \
+host: localhost\n\ \ port: 5432" database.yml
+
+sed -i "/${myrails}_production/{n;N;d}" database.yml
+sed -i "/${myrails}_production/a \ \ username: ${myusername}\n\ \ \
+password: <%= ENV[\'${password_env_var_string}\'] %>" database.yml
+cd ..
+set +x
+
+# create the databases
+if [[  $createdb -eq 1 ]]; then
+    rake db:create:all
+    echo "databases created"
+fi
