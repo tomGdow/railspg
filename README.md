@@ -16,7 +16,7 @@ postgres. The outcome is otherwise equivalent to the default 'rails new project-
        (1) Set up a postgres user with the same name as the current unix/Ununtu login name
                sudo -u postgres createuser -s <unix_ubuntu_username>
                sudo -u postgres psql
-               \\password <unix_ubuntu_username>
+               \password <unix_ubuntu_username>
        (2) Set env variable. You may need to execute the following prior to running the program.-
               PGRAILS_DATABASE_PASSWORD='my_postgres_password'
               export PGRAILS_DATABASE_PASSWORD'
@@ -29,7 +29,7 @@ postgres. The outcome is otherwise equivalent to the default 'rails new project-
       railspg -cu <username> -e PG_PASSWORD new <project name>
 
 ## rootrails
-  rootrails [-h] <model_name || table_name> [<search_string>]
+  rootrails [-h] model-name || table-name [search-string]
 
 This program sets the application root in a Ruby-on-Rails 'config/routes.rb' file.
 
