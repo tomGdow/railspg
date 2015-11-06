@@ -1,0 +1,69 @@
+#!/bin/bash
+usage () {
+cat <<END
+
+ scaffoldp [-h]
+
+This program executes the following commands:
+
+       rails generate scaffold Product name:string description:text price:float
+       rake db:migrate
+
+      -h: get help
+
+    REQUIREMENTS
+       execute from the root directory of the rails app
+
+END
+}
+
+user_message() {
+cat <<END
+The following commands will be executed
+
+       rails generate scaffold Product name:string description:text price:float
+       rake db:migrate
+
+END
+}
+## Set options
+while getopts ":h" opt; do
+ case $opt in
+    h)
+     usage
+     exit 1
+      ;;
+  esac
+done
+
+check_rails_directory() {
+
+    declare count_key_rails_files=$(ls | grep -c '^app$\|^config$')
+
+    if [[ ${count_key_rails_files} -ne 2 ]]; then
+        echo "You do not appear to be in the root directory of a Rails app"
+        exit 1
+    fi
+}
+
+user_choice () {
+
+    user_message
+    read -p  "Continue [Y/n]?" userchoice
+
+    if [[ $userchoice == "Y" ||  $userchoice == "Yes" ]]; then
+        scaffold_and_migrate
+        exit 0
+    else
+        echo "Exit on user choice"
+    fi
+  }
+
+scaffold_and_migrate () {
+
+    rails generate scaffold Product name:string description:text price:float
+    rake db:migrate
+}
+
+check_rails_directory
+user_choice

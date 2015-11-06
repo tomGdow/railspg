@@ -1,0 +1,123 @@
+#!/bin/bash
+declare search_string=${2-'welcome#index'}
+usage () {
+cat <<END
+
+    rootrails [-h] <model_name || table_name> [<search_string>]
+
+This program sets the application root in a Ruby-on-Rails 'config/routes.rb' file.
+
+    The first compulsory argument is the table or model name. If the Model name is
+    given, it will be converted to lowercase and pluralized. <table_name> format is
+    to be preferred.
+
+    The second argument is the search string, which defaults to 'welcome#index'
+
+    You will be given a chance to revise the input before any changes are made
+
+      -h: get help
+
+    REQUIREMENTS
+       Execute from the root directory of the rails app
+
+    EXAMPLE USAGE
+      rootrails Product
+      rootrails products
+      rootrails commodities 'products#index'
+
+    NOTE
+       Pluralization is not very clever. An 's' is added to a word that does not
+       end in 's'.  'Product' is converted to 'products'
+END
+}
+
+## Set options
+while getopts ":h" opt; do
+ case $opt in
+    h)
+     usage
+     exit 1
+      ;;
+  esac
+done
+
+check_rails_directory() {
+
+    declare count_key_rails_files=$(ls | grep -c '^app$\|^config$')
+
+    if [[ ${count_key_rails_files} -ne 2 ]]; then
+        echo "You do not appear to be in the root directory of a Rails app"
+        exit 1
+    fi
+}
+
+check_string_presence () {
+
+    declare string_count="$(grep -c $1 $2)"
+
+    if [[ string_count -eq 1 ]]; then
+        echo "String ${1} found OK ..."
+    else
+        echo "String ${1} NOT found in ${2}"
+        sed -n '/#\{0,2\}[[:space:]]\{0,10\} root.*#/p' config/routes.rb
+        exit 1
+    fi
+}
+
+checkargs () {
+
+    if [[ $1 -eq 0 ]]; then
+        echo "Argument required"
+        exit 1
+    fi
+}
+
+to_lowercase_and_pluralize () {
+
+    declare lower_case_input="${1,,}"
+    declare last_letter_input="${lower_case_input: -1}"
+
+    if [[ ${last_letter_input} != "s" ]]; then
+        echo "${lower_case_input}s"
+    else
+        echo "${lower_case_input}"
+    fi
+}
+
+declare proposed_change_to="$(to_lowercase_and_pluralize $1)#index"
+
+make_change () {
+
+        sed -i "s/${search_string}/${proposed_change_to}/" config/routes.rb
+        sed -i 's/#\{1,2\}[[:space:]]\{0,10\}root/\ root/' config/routes.rb
+        echo "Requested changes made in 'config/routes.rb'"
+        exit 0
+}
+
+user_choice () {
+
+    read -p  " '${search_string}'  will be changed to '${proposed_change_to}'. Do you wish to make this change? [Y/n]?" userchoice
+
+    if [[ $userchoice == "Y" ||  $userchoice == "Yes" ]]; then
+        make_change
+    else
+        user_input_choice
+    fi
+  }
+
+user_input_choice () {
+
+    read -p  "Change '${proposed_change_to}' to <YOUR_CHOICE> [E to Exit]" userchoice
+    if [[ $userchoice == "E" ||  $userchoice == "Exit" ]]; then
+        echo "Exit by user choice"
+        exit 1
+    else
+        proposed_change_to=${userchoice}
+        user_choice
+    fi
+  }
+
+check_rails_directory
+checkargs ${#}
+check_string_presence ${search_string} 'config/routes.rb'
+user_choice
