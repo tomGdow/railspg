@@ -1,7 +1,7 @@
-railspg [-h] [-c] [-u] [-e] new <project_name>
+railspg [-h] [-c] [-u] [-e] new project-name
 
-This program generates a basic rails project where all generated databases (development, test and production) are
-postgres. The outcome is otherwise equivalent to the default 'rails new <project_name>'
+This Bash program generates a basic rails project where all generated databases (development, test and production) are
+postgres. The outcome is otherwise equivalent to the default 'rails new project-name'
 
       -h: get help
       -c: Create databases. If (1) postgres username and unix/Ubuntu username are identical

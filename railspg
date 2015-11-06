@@ -7,12 +7,12 @@ declare myusername=${whoami}
 declare -i  createdb=0
 declare grep_project_name=""
 #declare script_name=${0##*/}
-declare password_env_var_string="PGRAILS_DATABASE_PASSWORD"
+declare password_env_var_string="POSTGRES_PASSWORD"
 
 ## Functions
 
 user_choice () {
-    read -p  "databases will not be created. Do you wish to continue? [Y/n]?" userchoice
+    read -p  "Databases will not be created. Do you wish to continue? [Y/n]?" userchoice
       if [[ $userchoice == "Y" ||  $userchoice == "Yes" ]]; then
         echo "OK"
       else
@@ -35,7 +35,7 @@ env_variable_check () {
   if [[  $(env  | grep -c ^${1}=) -ne 0 ]]; then
     echo "Env variable OK"
   else
-    echo "password env variable not properly set"
+    echo "Password 'env' variable not properly set"
     user_choice
     createdb=0
   fi
@@ -64,7 +64,7 @@ postgres. The outcome is otherwise equivalent to the default 'rails new <project
       -h: get help
       -c: Create databases. If (1) postgres username and unix/Ubuntu username are identical
           (2) An env variable is set to posgres password, databases may be created.
-          By default, the env variable name is PGRAILS_DATABASE_PASSWORD. 
+          By default, the env variable name is POSTGRES_PASSWORD. 
           If the databases are NOT created, run 'rake db:create:all' after program execution.
       -u: change username. The default username is the current unix/Ubuntu username
       -e: set postgres password environment variable name. Useful if the env variable name is other than default
@@ -75,10 +75,10 @@ postgres. The outcome is otherwise equivalent to the default 'rails new <project
                sudo -u postgres psql
                \\password <unix_ubuntu_username>
        (2) Set env variable. You may need to execute the following prior to running the program. 
-              PGRAILS_DATABASE_PASSWORD='my_postgres_password'
-              export PGRAILS_DATABASE_PASSWORD'
+              POSTGRES_PASSWORD='my_postgres_password'
+              export POSTGRES_PASSWORD'
           Or, include the following line in your .bashrc file
-              export PGRAILS_DATABASE_PASSWORD='my_postgres_password'
+              export POSTGRES_PASSWORD='my_postgres_password'
 
     EXAMPLE USAGE
       railspg new <project_name>
@@ -178,5 +178,5 @@ set +x
 # create the databases
 if [[  $createdb -eq 1 ]]; then
     rake db:create:all
-    echo "databases created"
+    echo "Databases created OK"
 fi
