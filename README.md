@@ -68,3 +68,49 @@ This program executes the following commands:
     REQUIREMENTS
        execute from the root directory of the rails app
 
+##socatrails
+socatrails [-h] [-c] [-s] [-p] [-l] <server-address>
+
+This program enables public access to a Rails application running in development mode on localhost.-
+An ssh tunnel is created that binds a remote server TCP port (default: 8088) to a local TCP port (default: 3000).-
+A public port is exposed on the remote server (default: 8090) that routes traffic to the remote port bound to localhost.-
+
+If the remote address is reachable at 'mysite.com', a Rails app running on locahost:3000 is publicly visible at 'mysite.com:8090'
+
+      -h: get help
+      -c: Execute code pertaining to the local machine. The command executed will be of the following form
+          ssh -R <remote_port_number>:localhost:<rails_port_number>  <server_address> -N:
+      -s: execute code pertaining to remote server. The command executed will be of the following form
+          socat TCP-LISTEN:<listen_port_number>,fork,reuseaddr TCP-CONNECT:127.0.0.1:<remote_port_number> &
+      -p: remote port number (default 8088)
+      -r: rails port number (default: 3000)
+      -l: listening port (default: 8090)
+
+    REQUIREMENTS
+      (1) socat must be installed on both machines
+      (2) A Ruby-on-Rails app running locally
+
+    DEFAULTS
+      (1)  The default server address is tomgdow@tomgdow.com (tomgdow@46.101.11.172)  You will need your own server address.
+      (2)  Code pertaining to the local machine is executed by default. There is no need to include the '-c' option
+           To execute code pertaining to the remote server, include the '-s' option
+
+    EXAMPLE USAGE
+      (1)  (local) socatrails
+           (remote server) socatrails -s
+
+      (2)  (local) socatrails -p 8000
+           (remote server) socatrails -s -p 8000 -l 8080
+
+      (3)  (local) socatrails -p 8000  user@ip_addresss
+           (remote server) socatrails -s -p 8000 -l 8080
+
+    SPECIFIC EXAMPLE
+           (local)  rails s -p 4000
+           (local)  socatrails -r 4000  user@mysite.com
+           (remote server)  socatrails -s -l 8090
+           (browser) mysite.com:8090
+
+    REFERENCE
+        You, Juan (2013) Enabling Public Access To Development Machine (Developer Diary of Joon You) [Internet]
+        Available at: https://www.selfthis.com/2013/05/03/enabling-public-access-to-development-machine/
