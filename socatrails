@@ -106,7 +106,13 @@ user_choice () {
 
          read -p  " Execute this code ? [Y/n]?" userchoice
           if [[ $userchoice == "Y" ||  $userchoice == "Yes" ]]; then
-             ${1}
+
+              if [[ ${client_or_server} == "client" ]]; then
+                ${1}
+              else
+                ${1} &
+              fi
+
           else
               echo "Exit at user choice"
           fi
@@ -118,7 +124,7 @@ set_up_socat () {
          user_choice  "ssh -R ${remote_port_number}:localhost:${rails_port_number}  ${server_address} -N"
       else
          server_message
-         user_choice  "socat TCP-LISTEN:${listen_port_number},fork,reuseaddr TCP-CONNECT:127.0.0.1:${remote_port_number} &"
+         user_choice  "socat TCP-LISTEN:${listen_port_number},fork,reuseaddr TCP-CONNECT:127.0.0.1:${remote_port_number} "
       fi
   }
 

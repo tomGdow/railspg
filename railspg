@@ -94,7 +94,7 @@ while getopts ":chu:e:" opt; do
      createdb=1
       ;;
     h)
-     usage
+     usage | less
      exit 1
       ;;
     u)
@@ -152,7 +152,7 @@ if [[ ${devexists} == 1 || ${prodexists} == 1 || ${testexists} == 1 ]]; then
   if [[ ${prodexists} == 1 ]]; then
     echo "Database ${myrails}_production already exists" 
   fi
-echo "type 'makerails_pg help' for usage"
+echo "railspg -h for help"
 exit 1
 fi
 
